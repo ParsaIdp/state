@@ -6,6 +6,8 @@ import h5py as h5
 import numpy as np
 
 from pathlib import Path
+from typing import Optional
+
 from tqdm import tqdm
 from torch import nn
 
@@ -123,13 +125,14 @@ class Inference:
         # Keep internal cfg in sync
         self._vci_conf = cfg_to_use
         self.model = StateEmbeddingModel.load_from_checkpoint(
-            checkpoint, dropout=0.0, strict=False, cfg=self._vci_conf, weights_only=False
+            checkpoint, dropout=0.0, strict=False, cfg=self._vci_conf, weights_only=False, map_location="cpu"
         )
 
         # Convert model to appropriate precision for faster inference
         device_type = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device(device_type)
         precision = get_precision_config(device_type=device_type)
-        self.model = self.model.to(precision)
+        self.model = self.model.to(device=device, dtype=precision)
 
         # Resolve protein embeddings: prefer provided/packaged, then config
         if self.protein_embeds is None:
